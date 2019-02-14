@@ -1,3 +1,5 @@
+
+#include "pch.h"
 #include "BAR.h"
 
 vec BAR(double t, const vec w, const void *Pars) {
@@ -5,7 +7,7 @@ vec BAR(double t, const vec w, const void *Pars) {
 	float m1 = pars.m1, m2 = pars.m2, m3 = pars.m3;
 	float a = pars.a, sigma = pars.sigma, K = pars.K, alpha = pars.alpha;
 
-	double x1 = w(0), x2 = w(2), x3=w(2), y=w(3);
+	double x1 = w(0), x2 = w(1), x3=w(2), y=w(3);
 	double x = x1+x2+x3;
 
 	vec f(4);

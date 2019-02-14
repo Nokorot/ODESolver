@@ -2,54 +2,69 @@
 #include "pch.h"
 #include "main.h"
 
-int main() {
-  P2();
+double F(const double t, const void *Pars)
+{
+	return .5-t;
 }
 
-void P1() {
-  BAR_Pars setupA{
-    // m1,m2,m3   a, sigma, K, alpha
-        2, 2, 2, .3,   1.1, 1,     2
-  };
-
-  double t0=0, tf=500, h = 0.1;
-  Col<double> w0("0.1, 0.02, 0.01, 0.01");
-
-  Solution sol = ODEsolver(t0, w0, tf, h, &BAR, 0, &setupA);
-
-  // Problem a
-  Gnuplot g1("lines lw 5");
-  g1.set_title("Solution");
-
-  vector<string> titles {
-	  "x1", "x2", "x3", "y"
-  };
-  plot_xY(&g1, *sol.T, *sol.Y, titles);
-
-  // Problem b
-  Gnuplot g2("lines lw 5");
-  g2.set_title("Pray vs Predator");
-  rowvec x = sol.Y->row(0) + sol.Y->row(1) + sol.Y->row(2);
-  plot_xy(&g2, rowvec(sol.Y->row(3)), mat(x), "");
-
-  wait_for_key();
+int main()
+{
+	P1();
+	P2();
+	P3();
 }
 
-void P2() {
-	BAR_Pars setupB{
+void P1()
+{
+	BAR_Pars setupA
+	{
+	// m1,m2,m3   a, sigma, K, alpha
+		2, 2, 2, .3,   1.1, 1,     2
+	};
+	ODESolver solver(&BAR, &setupA);
+	solver.setMethod(EULER_METHOD);
+
+	double t0=0, tf=500, h = 0.1;
+	colvec w0("0.1, 0.02, 0.01, 0.01");
+
+	Solution sol = solver.solve_init(t0, w0, tf, h);
+
+	// Problem a
+	Gnuplot g1("lines lw 3");
+	setOutputPDF(&g1, 7, 5, "fig1A.pdf");
+
+	vector<string> titles
+	{
+		"x1", "x2", "x3", "y"
+	};
+	plot_xY(&g1, *sol.T, *sol.Y, titles);
+
+	// Problem b
+	Gnuplot g2("lines lw 3");
+	setOutputPDF(&g2, 7, 5, "fig1B.pdf");
+	g2.set_title("Pray vs Predator");
+	rowvec x = sol.Y->row(0) + sol.Y->row(1) + sol.Y->row(2);
+	plot_xy(&g2, rowvec(sol.Y->row(3)), mat(x), "");
+}
+
+void P2()
+{
+	BAR_Pars setupB
+	{
 	    //   m1,  m2,  m3   a, sigma, K, alpha
 	       2.25, 2.5, 2.5, .4,   1.1, 1,   1.2
 	};
 
-	double t0=0, tf=50;
+	ODESolver solver(&BAR, &setupB);
+	solver.setMethod(EULER_METHOD);
+
+	double t0=0, tf=500;
 	Col<double> w0("0.001, 0.002, 0.1, 0.1");
 
 	// Problem a
-	Gnuplot g1("lines lw 5");
-	g1.cmd("set terminal pdfcairo size 20,10");
-	g1.cmd("set term pdfcairo enhanced font \"Helvetica,20\"");
-	g1.cmd("set output 'fig2A.pdf'");
-	g1.cmd("set multiplot layout 2,4 rowsfirst");
+	Gnuplot g1("lines lw 3");
+	setOutputPDF(&g1, 20, 5, "fig2A.pdf");
+	g1.cmd("set multiplot layout 1,4 rowsfirst");
 
 	rowvec x;
 	char title[25];
@@ -57,13 +72,13 @@ void P2() {
 	double h[]{0.05, 0.1, 0.2, 0.4};
 	for (int i=0; i<4; ++i)
 	{
-		Solution sol = ODEsolver(t0, w0, tf, h[i], &BAR, EULER_METHOD, &setupB);
+		Solution sol = solver.solve_init(t0, w0, tf, h[i]);
 		x = sol.Y->row(0) + sol.Y->row(1) + sol.Y->row(2);
 		sprintf(title, "{/:Bold=24 h=%.2f}", h[i]);
 
 		g1.reset_plot();
 		g1.set_title(title);
-		g1.set_xrange(-0.2, 1.2);
+		//g1.set_xrange(-0.2, 1.2);
 		g1.set_yrange(0, .5);
 		g1.set_xlabel("{/:Bold #prey}");
 		g1.set_ylabel("{/:Bold #predators }");
@@ -71,49 +86,116 @@ void P2() {
 	}
 
 	// Problem b
+	Gnuplot g2("lines lw 3");
+	setOutputPDF(&g2, 20, 5, "fig2B.pdf");
+	g2.cmd("set multiplot layout 1,4 rowsfirst");
+	solver.setMethod(RK4_METHOD);
 	for (int i=0; i<4; ++i)
 	{
-		Solution sol = ODEsolver(t0, w0, tf, h[i], &BAR, RK4_METHOD, &setupB);
+		Solution sol = solver.solve_init(t0, w0, tf, h[i]);
 		x = sol.Y->row(0) + sol.Y->row(1) + sol.Y->row(2);
 
-		g1.reset_plot();
+		g2.reset_plot();
 		sprintf(title, "{/:Bold=24 h=%.2f}", h[i]);
-		g1.set_title(title);
-		g1.set_xrange(-0.2, 1.2);
-		g1.set_yrange(0, .5);
-		g1.set_xlabel("{/:Bold #prey}");
-		g1.set_ylabel("{/:Bold #predators }");
-		plot_xy(&g1, x, sol.Y->row(3), "");
+		g2.set_title(title);
+		//g1.set_xrange(-0.2, 1.2);
+		g2.set_yrange(0, .5);
+		g2.set_xlabel("{/:Bold #prey}");
+		g2.set_ylabel("{/:Bold #predators }");
+		plot_xy(&g2, x, sol.Y->row(3), "");
 	}
-	g1.cmd("unset multiplot");
+	g2.cmd("unset multiplot");
 
 	// Problem c
-	Gnuplot g2("lines lw 5");
-	g2.cmd("set terminal pdf size 10,5");
-	g2.cmd("set term pdfcairo enhanced font \"Helvetica,20\"");
-	g2.cmd("set output 'fig2C.pdf'");
-	g2.cmd("set multiplot layout 1,2 rowsfirst");
+	Gnuplot g3("lines lw 3");
+	setOutputPDF(&g3, 10, 5, "fig2C.pdf");
+	g3.cmd("set multiplot layout 1,2 rowsfirst");
 
 	tf = 100;
-	Solution sol = ODEsolver(t0, w0, tf, 0.1, &BAR, RK4_METHOD, &setupB);
+	Solution sol = solver.solve_init(t0, w0, tf, 0.1);
 	x = sol.Y->row(0) + sol.Y->row(1) + sol.Y->row(2);
 
-	g2.reset_plot();
-	g2.set_title("{/:Bold=24 Tf = 100, x vs y }");
-	g2.set_xlabel("{/:Bold #predators }");
-	g2.set_ylabel("{/:Bold #prey}");
-	plot_xy(&g2, x, sol.Y->row(1), "");
+	g3.reset_plot();
+	g3.set_title("{/:Bold=24 Tf = 100, x vs y }");
+	g3.set_xlabel("{/:Bold #predators }");
+	g3.set_ylabel("{/:Bold #prey}");
+	plot_xy(&g3, x, sol.Y->row(3), "");
 
-	g2.reset_plot();
-	g2.set_title("{/:Bold=24 Tf = 100, per time }");
-	g2.set_xlabel("{/:Bold time }");
-	g2.set_legend("left");
+	tf = 1000;
+	Solution sol2 = solver.solve_init(t0, w0, tf, 0.1);
+	g3.set_title("{/:Bold=24 Tf = 100, per time }");
+	g3.set_xlabel("{/:Bold time }");
+	g3.set_legend("left");
 	vector<string> titles {
 		"x1", "x2", "x3", "y"
 	};
-	plot_xY(&g2, *sol.T, *sol.Y, titles);
+	plot_xY(&g3, *sol2.T, *sol2.Y, titles);
 
-	g2.cmd("unset multiplot");
+	g3.cmd("unset multiplot");
+}
+
+void P3()
+{
+	// problem a
+	BAR_Pars setupB
+	{
+	//    m1,  m2,  m3   a, sigma, K, alpha
+		2.25, 2.5, 2.5, .4,   1.1, 1,   1.2
+	};
+	ODESolver solver(&BAR, &setupB);
+	solver.setMethod(RK4_METHOD);
+
+	Col<double> w0("0.001, 0.002, 0.1, 0.1");
+	Solution refSol = solver.solve_init(0, w0, 500, 0.01);
+
+
+	// problem b
+	rowvec H{ 0.05, 0.1, 0.2, 0.4, 0.6, 0.8 };
+	rowvec E1(H.n_elem);
+	solver.setMethod(EULER_METHOD);
+	for (int i = 0; i < H.n_elem; ++i)
+	{
+		Solution qSol = solver.solve_init(0, w0, 500, H[i]);
+
+		E1[i] = ErrorCalc(*refSol.T, *refSol.Y, *qSol.T, *qSol.Y);
+	}
+
+	Gnuplot g1("lines lw 3");
+
+	plot_xy(&g1, H, E1, "");
+
+
+	solver.setMethod(RK4_METHOD);
+	rowvec E2(H.n_elem);
+	for (int i = 0; i < H.n_elem; ++i)
+	{
+		Solution qSol = solver.solve_init(0, w0, 500, H[i]);
+
+		E2[i] = ErrorCalc(*refSol.T, *refSol.Y, *qSol.T, *qSol.Y);
+	}
+
+	setOutputPDF(&g1, 7, 5, "fig3B.pdf");
+
+	plot_xy(&g1, H, E2, "");
+
+	// problem c
+	Gnuplot g2("lines lw 3");
+
+	plot_xy(&g2, log(H), log(E1), "");
+
+	setOutputPDF(&g2, 7, 5, "fig3C.pdf");
+
+	plot_xy(&g2, log(H), log(E2), "");
+}
+
+void setOutputPDF(Gnuplot* g, int w, int h, const std::string filename) {
+	char str[100];
+	sprintf(str, "set terminal pdfcairo size %d,%d", w , h);
+	g->cmd(std::string(str));
+	sprintf(str,"set term pdfcairo enhanced font \"Helvetica,20\"");
+	g->cmd(std::string(str));
+	sprintf(str, "set output '%s'", filename.c_str());
+	g->cmd(std::string(str));
 }
 
 template<typename X, typename Y>
@@ -199,8 +281,6 @@ void plot_xY(Gnuplot* g, const rowvec& x, const mat& y, const vector<string> tit
 		else
 			cmdstr << ", ";
     }
-
-    std::cout << cmdstr.str() << std::endl;
 
     g->cmd(cmdstr.str());
 }

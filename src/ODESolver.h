@@ -89,7 +89,7 @@ public:
 	/// \return <-- A solution object containing, containing a reference to the
 	///	discrete time vector and the discrete function value matrix
 	//----------------------------------------------------------------------------------
-	// TODO: Solution solve_bv(double t0, double tf, double v0, double vf, double h);
+	Solution solve_bv(double (*f)(const double x, const void*), double t0, double tf, double v0, double vf, double h);
 
 
 	// TODO: EvalFunc highOrder(int order);

@@ -10,8 +10,6 @@
 #ifndef BAR_H_
 #define BAR_H_
 
-#include <armadillo>
-
 using namespace arma;
 
 typedef struct {

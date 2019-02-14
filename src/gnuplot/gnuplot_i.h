@@ -58,6 +58,7 @@
 
 //declare classes in global namespace
 
+bool silent = 1;
 
 class GnuplotException : public std::runtime_error
 {
@@ -1659,7 +1660,8 @@ Gnuplot& Gnuplot::cmd(const std::string &cmdstr)
         return *this;
     }
 
-    std::cout << cmdstr << std::endl;
+    if (!silent)
+    	std::cout << cmdstr << std::endl;
     // int fputs ( const char * str, FILE * stream );
     // writes the string str to the stream.
     // The function begins copying from the address specified (str) until it

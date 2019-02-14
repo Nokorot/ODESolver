@@ -2,7 +2,6 @@
 #include "pch.h"
 #include "ODESolver.h"
 
-
 vec ODESolver::ODEstep(double tn, vec yn, double h)
 {
 	vec F1, F2, F3, F4, Y1, Y2, Y3;
@@ -36,7 +35,7 @@ ODESolver::ODESolver(EvalFunc evalf)
 ODESolver::ODESolver(EvalFunc evalf, void* pars)
 	: f(evalf), Pars(pars) {}
 
-Solution ODESolver::solve_init(double t0, vec y0, double tf, double h)
+Solution ODESolver::solve_init(double t0, colvec y0, double tf, double h)
 {
 	int N = (int) ((tf-t0)/h);
 	if (tf > t0+N*h) ++N;
@@ -54,4 +53,35 @@ Solution ODESolver::solve_init(double t0, vec y0, double tf, double h)
     	T->at(N) = tf;
 
     return Solution(T, Y);
+}
+
+Solution ODESolver::solve_bv(double (*f)(const double x, const void*), double x0, double xf, double v0, double vf, double h) {
+	int N = (int) ((xf-x0)/h);
+	if (xf > x0+N*h) h = (xf-x0)/N;
+
+	rowvec *Y = new rowvec(N+1);
+	rowvec *T = new rowvec(N+1);
+
+	mat A(N-1, N-1);
+	colvec b(N-1);
+
+	for (int i=0;i<N-2;i++)
+	{
+		A(i,i) = -2; A(i+1,i) = A(i,i+1) = 1;
+		b(i) = f((i+1)*h, Pars) * h*h;
+	}
+	A(N-2, N-2) = -2;
+	b(0) -= v0;
+	b(N-2) = f((N-2)*h, Pars) * h*h - vf;
+
+	colvec x = solve(A, b);
+	for (int i=0; i < N-1;i++)
+	{
+		Y->at(i+1) = x(i);
+		T->at(i+1) = (i+1)*h;
+	}
+	Y->at(0) = v0; Y->at(N) = vf;
+	T->at(0) = x0; T->at(N) = xf;
+
+	return Solution(T,Y);
 }
